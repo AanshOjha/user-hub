@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     app_name: str = "Login Permissions System"
     debug: bool = True
+    admin_email: str = "admin@example.com"
+    admin_password: str = "admin123"
     
     class Config:
         env_file = ".env"

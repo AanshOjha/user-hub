@@ -2,6 +2,10 @@
 
 A comprehensive FastAPI application with JWT-based authentication and role-based access control (RBAC) system.
 
+## 🎥 Demo Video
+
+[![Demo Video](https://img.shields.io/badge/▶️-Watch%20Demo-red?style=for-the-badge&logo=youtube)](https://drive.google.com/file/d/17NDzZWysH0brM1mdnjBDL5KOtjU9L21K/view?usp=drive_link)
+
 ## Features
 
 - 🔐 **JWT Authentication**: Secure token-based authentication
@@ -51,6 +55,11 @@ A comprehensive FastAPI application with JWT-based authentication and role-based
 3. **Set up environment variables**
    - Copy `.env` file and update with your settings
    - Generate a secure SECRET_KEY for production
+   - **Set admin credentials**:
+     ```env
+     ADMIN_EMAIL=your-admin@example.com
+     ADMIN_PASSWORD=your-secure-password
+     ```
 
 4. **Initialize the database**
    ```bash
@@ -66,10 +75,17 @@ The application will be available at `http://localhost:8000`
 
 ## Default Admin Account
 
-- **Email**: admin@example.com
-- **Password**: admin123
+The default admin account is configured through environment variables in the `.env` file:
 
-⚠️ **Important**: Change the default admin password in production!
+```env
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=admin123
+```
+
+⚠️ **Important**: 
+- Change the default admin password in production!
+- Keep the `.env` file secure and never commit it to version control
+- The password is only stored in the `.env` file for security
 
 ## User Management
 
@@ -130,6 +146,8 @@ The application uses environment variables for configuration:
 - `SECRET_KEY` - JWT secret key
 - `ACCESS_TOKEN_EXPIRE_MINUTES` - Token expiration time
 - `APP_NAME` - Application name
+- `ADMIN_EMAIL` - Default admin user email
+- `ADMIN_PASSWORD` - Default admin user password
 
 ## Database Schema
 

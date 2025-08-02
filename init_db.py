@@ -124,8 +124,9 @@ def init_roles_and_permissions(db: Session):
 
 def create_default_admin_user(db: Session):
     """Create a default admin user"""
-    admin_email = "admin@example.com"
-    existing_admin = crud.get_user_by_email(db, admin_email)
+    from config import settings
+    
+    existing_admin = crud.get_user_by_email(db, settings.admin_email)
     
     if not existing_admin:
         # Get Super Admin role
@@ -133,12 +134,13 @@ def create_default_admin_user(db: Session):
         
         if super_admin_role:
             admin_user = crud.create_user(db, schemas.UserCreate(
-                email=admin_email,
-                password="admin123",  # Change this in production!
+                email=settings.admin_email,
+                password=settings.admin_password,
                 full_name="System Administrator",
                 role_id=super_admin_role.id
             ))
-            print(f"Created default admin user: {admin_email} / admin123")
+            print(f"Created default admin user: {settings.admin_email}")
+            print("⚠️  Check .env file for admin password")
             return admin_user
     
     return existing_admin
