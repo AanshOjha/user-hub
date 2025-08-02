@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - {{ app_name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            font-weight: 600;
+        }
+        .permission-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 0.3rem 0.8rem;
+            font-size: 0.8rem;
+            margin: 0.2rem;
+            display: inline-block;
+        }
+        .role-badge {
+            font-size: 1.1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+        }
+        .activity-item {
+            border-left: 3px solid #667eea;
+            padding-left: 1rem;
+            margin-bottom: 1rem;
+        }
+        .btn-logout {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            border-radius: 20px;
+        }
+        .btn-logout:hover {
+            background: rgba(255,255,255,0.3);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand text-white fw-bold" href="#">
+                <i class="fas fa-shield-alt me-2"></i>
+                {{ app_name }}
+            </a>
+            <div class="navbar-nav ms-auto">
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user-circle me-2"></i>
+                        {{ user.full_name }}
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Profile</a></li>
+                        {% if 'users:manage' in permissions %}
+                        <li><a class="dropdown-item" href="/user-management"><i class="fas fa-users-cog me-2"></i>User Management</a></li>
+                        {% endif %}
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="/logout"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <!-- User Info Card -->
+            <div class="col-md-4 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-user-circle me-2"></i>
+                        User Information
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center mb-3">
+                            <i class="fas fa-user-circle fa-5x text-muted"></i>
+                        </div>
+                        <h5 class="text-center mb-3">{{ user.full_name }}</h5>
+                        <div class="mb-3">
+                            <strong>Email:</strong><br>
+                            <span class="text-muted">{{ user.email }}</span>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Role:</strong><br>
+                            {% if user.role %}
+                                <span class="badge role-badge bg-primary">{{ user.role.name }}</span>
+                            {% else %}
+                                <span class="badge bg-secondary">No Role Assigned</span>
+                            {% endif %}
+                        </div>
+                        <div class="mb-3">
+                            <strong>Status:</strong><br>
+                            {% if user.is_active %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-danger">Inactive</span>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <strong>Member Since:</strong><br>
+                            <span class="text-muted">{{ user.created_at.strftime('%B %d, %Y') }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Permissions Card -->
+            <div class="col-md-8 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-key me-2"></i>
+                        Your Permissions
+                    </div>
+                    <div class="card-body">
+                        {% if permissions %}
+                            <div class="row">
+                                <div class="col-12">
+                                    <p class="text-muted mb-3">You have {{ permissions|length }} permission(s) based on your role:</p>
+                                    {% for permission in permissions %}
+                                        <span class="permission-badge">{{ permission }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="text-center text-muted">
+                                <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                                <p>No permissions assigned to your role.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activities -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-history me-2"></i>
+                        Recent Activities
+                    </div>
+                    <div class="card-body">
+                        {% if recent_activities %}
+                            {% for activity in recent_activities %}
+                                <div class="activity-item">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <strong>{{ activity.action }}</strong> on {{ activity.resource }}
+                                            {% if activity.details %}
+                                                <br><small class="text-muted">{{ activity.details }}</small>
+                                            {% endif %}
+                                        </div>
+                                        <small class="text-muted">{{ activity.timestamp.strftime('%m/%d/%Y %H:%M') }}</small>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center text-muted">
+                                <i class="fas fa-clock fa-3x mb-3"></i>
+                                <p>No recent activities found.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-bolt me-2"></i>
+                        Quick Actions
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            {% if 'documents:create' in permissions %}
+                            <div class="col-md-3 mb-3">
+                                <a href="#" class="btn btn-outline-primary w-100">
+                                    <i class="fas fa-upload d-block mb-2"></i>
+                                    Upload Document
+                                </a>
+                            </div>
+                            {% endif %}
+                            
+                            {% if 'documents:read' in permissions %}
+                            <div class="col-md-3 mb-3">
+                                <a href="#" class="btn btn-outline-success w-100">
+                                    <i class="fas fa-folder-open d-block mb-2"></i>
+                                    View Documents
+                                </a>
+                            </div>
+                            {% endif %}
+                            
+                            {% if 'ai:execute' in permissions %}
+                            <div class="col-md-3 mb-3">
+                                <a href="#" class="btn btn-outline-info w-100">
+                                    <i class="fas fa-robot d-block mb-2"></i>
+                                    AI Queries
+                                </a>
+                            </div>
+                            {% endif %}
+                            
+                            {% if 'users:manage' in permissions %}
+                            <div class="col-md-3 mb-3">
+                                <a href="/user-management" class="btn btn-outline-warning w-100">
+                                    <i class="fas fa-users-cog d-block mb-2"></i>
+                                    Manage Users
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
