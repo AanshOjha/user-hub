@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
-from database import User, Role, Permission, RolePermission, AuditLog
+from database import User, Role, Permission, RolePermission, AuditLog, Candidate
 import schemas
 from auth import get_password_hash
 from datetime import datetime
@@ -133,3 +133,39 @@ def get_user_dashboard_data(db: Session, user_id: int):
         "permissions": permission_names,
         "recent_activities": recent_activities
     }
+
+# Candidate CRUD
+def create_candidate(db: Session, candidate: schemas.CandidateCreate, created_by: int):
+    db_candidate = Candidate(
+        name=candidate.name,
+        email=candidate.email,
+        document_path=candidate.document_path,
+        created_by=created_by
+    )
+    db.add(db_candidate)
+    db.commit()
+    db.refresh(db_candidate)
+    return db_candidate
+
+def get_candidate(db: Session, candidate_id: int):
+    return db.query(Candidate).filter(Candidate.id == candidate_id).first()
+
+def get_candidates(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(Candidate).offset(skip).limit(limit).all()
+
+def update_candidate(db: Session, candidate_id: int, candidate_update: schemas.CandidateUpdate):
+    db_candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+    if db_candidate:
+        update_data = candidate_update.dict(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(db_candidate, key, value)
+        db.commit()
+        db.refresh(db_candidate)
+    return db_candidate
+
+def delete_candidate(db: Session, candidate_id: int):
+    db_candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+    if db_candidate:
+        db.delete(db_candidate)
+        db.commit()
+    return db_candidate

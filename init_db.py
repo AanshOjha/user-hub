@@ -28,6 +28,12 @@ def init_roles_and_permissions(db: Session):
         {"name": "delete_documents", "description": "Delete documents", "resource": "documents", "action": "delete"},
         {"name": "export_data", "description": "Export data", "resource": "documents", "action": "export"},
         
+        # Candidates
+        {"name": "create_candidates", "description": "Create new candidates", "resource": "candidates", "action": "create"},
+        {"name": "view_candidates", "description": "View candidate information", "resource": "candidates", "action": "read"},
+        {"name": "update_candidates", "description": "Update candidate information", "resource": "candidates", "action": "update"},
+        {"name": "delete_candidates", "description": "Delete candidates", "resource": "candidates", "action": "delete"},
+        
         # AI Queries
         {"name": "run_ai_queries", "description": "Run AI queries", "resource": "ai", "action": "execute"},
         {"name": "advanced_ai", "description": "Use advanced AI features", "resource": "ai", "action": "advanced"},
@@ -62,6 +68,7 @@ def init_roles_and_permissions(db: Session):
                 "manage_users", "view_users", "manage_roles", "view_roles",
                 "manage_system", "view_system", "manage_documents", "upload_documents",
                 "view_documents", "edit_documents", "delete_documents", "export_data",
+                "create_candidates", "view_candidates", "update_candidates", "delete_candidates",
                 "run_ai_queries", "advanced_ai", "view_audit_logs", "comment_rate",
                 "view_assigned_candidates", "view_pii"
             ]
@@ -71,8 +78,9 @@ def init_roles_and_permissions(db: Session):
             "description": "Full control over recruitment data, can't change system settings",
             "permissions": [
                 "view_users", "manage_documents", "upload_documents", "view_documents",
-                "edit_documents", "delete_documents", "export_data", "run_ai_queries",
-                "advanced_ai", "comment_rate", "view_assigned_candidates", "view_pii"
+                "edit_documents", "delete_documents", "export_data",
+                "create_candidates", "view_candidates", "update_candidates", "delete_candidates",
+                "run_ai_queries", "advanced_ai", "comment_rate", "view_assigned_candidates", "view_pii"
             ]
         },
         {
@@ -80,6 +88,7 @@ def init_roles_and_permissions(db: Session):
             "description": "Can upload/view/edit documents and run queries",
             "permissions": [
                 "upload_documents", "view_documents", "edit_documents",
+                "create_candidates", "view_candidates", "update_candidates",
                 "run_ai_queries", "comment_rate", "view_assigned_candidates", "view_pii"
             ]
         },
@@ -87,14 +96,18 @@ def init_roles_and_permissions(db: Session):
             "name": "HR Intern",
             "description": "Can upload/view limited info, no PII or advanced features",
             "permissions": [
-                "upload_documents", "view_documents", "comment_rate"
+                "upload_documents", "view_documents",
+                "create_candidates", "view_candidates",
+                "comment_rate"
             ]
         },
         {
             "name": "Sourcer",
             "description": "Can upload/view limited info, no PII or advanced features",
             "permissions": [
-                "upload_documents", "view_documents", "comment_rate"
+                "upload_documents", "view_documents",
+                "create_candidates", "view_candidates",
+                "comment_rate"
             ]
         },
         {

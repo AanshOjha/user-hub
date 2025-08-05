@@ -206,3 +206,5 @@ yarn.lock
 
 # Python virtual environments
 .python-version
+
+UPCOMING_FEATURES.md

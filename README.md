@@ -1,45 +1,53 @@
-# Login Permissions System
+# HR Candidate Management System
 
-A comprehensive FastAPI application with JWT-based authentication and role-based access control (RBAC) system.
+A modern, role-based candidate management system with document upload capabilities and comprehensive permissions system.
 
-## 🎥 Demo Video
+## 🚀 Features
 
-[![Demo Video](https://img.shields.io/badge/▶️-Watch%20Demo-red?style=for-the-badge&logo=youtube)](https://drive.google.com/file/d/17NDzZWysH0brM1mdnjBDL5KOtjU9L21K/view?usp=drive_link)
+### Core Functionality
+- **Role-Based Access Control**: Different permissions for Super Admin, HR Manager, Recruiter, HR Intern, and Hiring Manager
+- **Document Management**: Upload and view candidate documents (PDFs, Word docs, etc.)
+- **Simplified Candidate Profiles**: Focus on essential information (name, email, documents)
+- **Audit Logging**: Track all user activities and changes
+- **Modern UI**: Clean, responsive interface with modern design
 
-## Features
+### User Roles & Permissions
 
-- 🔐 **JWT Authentication**: Secure token-based authentication
-- 👥 **Role-Based Access Control**: Comprehensive RBAC system with predefined roles
-- 📊 **Dashboard**: User-friendly dashboard with permissions overview
-- 🔍 **Audit Logging**: Track user activities and system events
-- 🎨 **Modern UI**: Bootstrap-based responsive design
-- 🛡️ **Security**: Password hashing, secure token handling
-- 👨‍💼 **User Management**: Admin interface for creating users and assigning roles
+#### 🔐 Super Admin
+- Full system access
+- User management (create, update, delete users)
+- Role and permission management
+- System configuration
+- Audit log access
 
-## Roles & Permissions
+#### 👩‍💼 HR Manager
+- Full candidate management (create, read, update, delete)
+- Document upload and viewing
+- Export capabilities
+- User management (limited)
 
-### 🔐 Super Admin
-- Full access to everything
-- Can manage users, roles, system settings, audit logs
+#### 🤝 Recruiter
+- Candidate management (create, read, update)
+- Document upload and viewing
+- Standard querying capabilities
 
-### 👩‍💼 HR Manager
-- Full control over recruitment data
-- Can manage all documents, view/edit/export data, run AI queries
-- Cannot change system settings or higher roles
+#### 📝 HR Intern / Sourcer
+- Limited candidate access (create, read with restrictions)
+- Document upload only
+- Basic search capabilities
 
-### 🤝 Recruiter
-- Can upload/view/edit documents and run queries
-- Cannot delete or export sensitive data
-
-### 📝 HR Intern / Sourcer
-- Can upload/view limited info
-- Cannot edit/delete/see PII or use advanced AI features
-
-### 👨‍💼 Hiring Manager
+#### 👨‍💼 Hiring Manager
 - Read-only access to assigned candidates
-- Can comment/rate, but nothing else
+- View documents for assigned candidates
+- Add comments and ratings
 
-## Installation
+## 🛠️ Setup Instructions
+
+### Prerequisites
+- Python 3.8+
+- pip (Python package manager)
+
+### Installation
 
 1. **Clone the repository**
    ```bash
@@ -47,9 +55,16 @@ A comprehensive FastAPI application with JWT-based authentication and role-based
    cd Login-Permissions
    ```
 
-2. **Install PostgreSQL**
-   - Install PostgreSQL on your system
-   - Create a database: `CREATE DATABASE login_permissions_db;`
+2. **Create a virtual environment**
+   ```bash
+   python -m venv venv
+   
+   # On Windows:
+   venv\\Scripts\\activate
+   
+   # On macOS/Linux:
+   source venv/bin/activate
+   ```
 
 3. **Install dependencies**
    ```bash
@@ -57,20 +72,13 @@ A comprehensive FastAPI application with JWT-based authentication and role-based
    ```
 
 4. **Set up environment variables**
-   - Copy `.env` file and update with your PostgreSQL settings:
-     ```env
-     DB_HOST=localhost
-     DB_PORT=5432
-     DB_NAME=login_permissions_db
-     DB_USER=postgres
-     DB_PASSWORD=your_postgres_password
-     ```
-   - Generate a secure SECRET_KEY for production
-   - **Set admin credentials**:
-     ```env
-     ADMIN_EMAIL=your-admin@example.com
-     ADMIN_PASSWORD=your-secure-password
-     ```
+   Create a `.env` file in the root directory:
+   ```env
+   SECRET_KEY=your-super-secret-key-here
+   DATABASE_URL=sqlite:///./app.db
+   ACCESS_TOKEN_EXPIRE_MINUTES=1440
+   APP_NAME=HR Candidate Management
+   ```
 
 5. **Initialize the database**
    ```bash
@@ -79,158 +87,151 @@ A comprehensive FastAPI application with JWT-based authentication and role-based
 
 6. **Run the application**
    ```bash
-   python main.py
+   python run.py
+   ```
+   or
+   ```bash
+   uvicorn main:app --reload --host 0.0.0.0 --port 8000
    ```
 
-The application will be available at `http://localhost:8000`
+7. **Access the application**
+   Open your browser and go to: `http://localhost:8000`
 
-## Default Admin Account
+### Default Login Credentials
 
-The default admin account is configured through environment variables in the `.env` file:
+After running `init_db.py`, you can log in with:
 
-```env
-ADMIN_EMAIL=admin@example.com
-ADMIN_PASSWORD=admin123
+- **Super Admin**: `admin@example.com` / `admin123`
+- **HR Manager**: `hr.manager@example.com` / `hrmanager123`
+- **Recruiter**: `recruiter@example.com` / `recruiter123`
+
+## 📁 Project Structure
+
+```
+Login-Permissions/
+├── main.py                 # FastAPI application and routes
+├── auth.py                 # Authentication and authorization logic
+├── database.py             # Database models and connection
+├── schemas.py              # Pydantic schemas for API validation
+├── crud.py                 # Database operations
+├── config.py              # Configuration settings
+├── init_db.py             # Database initialization script
+├── migrate_candidates.py   # Database migration script
+├── requirements.txt        # Python dependencies
+├── documents/             # Document storage directory
+├── templates/             # HTML templates
+│   ├── login.html
+│   ├── dashboard.html
+│   ├── candidates.html
+│   └── user_management.html
+└── __pycache__/           # Python cache files
 ```
 
-⚠️ **Important**: 
-- Change the default admin password in production!
-- Keep the `.env` file secure and never commit it to version control
-- The password is only stored in the `.env` file for security
+## 🎯 Usage Guide
 
-## User Management
+### For HR Managers
 
-The application includes a comprehensive user management interface for system administrators:
+1. **Add New Candidates**
+   - Navigate to Candidate Management
+   - Fill in candidate name and email
+   - Optionally upload a resume/document
+   - Click "Add Candidate"
 
-### Features:
-- **Create Users**: Add new users with email, password, and full name
-- **Role Assignment**: Select from available roles via dropdown menu
-- **User Overview**: View all existing users with their roles and status
-- **Role Descriptions**: Clear descriptions of each role's permissions
-- **Audit Trail**: All user creation actions are logged for security
+2. **View Documents**
+   - Click "View Document" button on any candidate card
+   - Documents are securely stored and served
 
-### Access:
-- Only users with "manage users" permission can access user management
-- Available in the dashboard dropdown menu and quick actions
-- Direct URL: `/user-management`
+3. **Manage Users**
+   - Access User Management from the dashboard
+   - Create new users with appropriate roles
+   - Assign permissions based on organizational needs
 
-### Available Roles:
-- **Super Admin**: Full system access
-- **HR Manager**: Full recruitment data control
-- **Recruiter**: Document management and AI queries
-- **HR Intern/Sourcer**: Limited upload and view access
-- **Hiring Manager**: Read-only access to assigned candidates
+### For Recruiters
 
-## API Endpoints
+1. **Upload Candidate Documents**
+   - Use the drag-and-drop interface to upload resumes
+   - Supported formats: PDF, DOC, DOCX, TXT
 
-### Authentication
-- `POST /token` - Get JWT token
-- `GET /login` - Login page
-- `POST /login` - Login form submission
-- `GET /logout` - Logout
+2. **Search and Filter**
+   - Use the search functionality to find specific candidates
+   - Filter by various criteria
 
-### User Management
-- `GET /user-management` - User management interface (admin only)
-- `POST /user-management` - Create new user with role assignment (admin only)
+### For HR Interns
 
-### Users
-- `GET /api/users/me` - Get current user info
-- `GET /api/users` - List all users (requires permission)
-- `POST /api/users` - Create new user (requires permission)
+1. **Basic Data Entry**
+   - Add candidate information (limited fields)
+   - Upload documents for processing
+   - Cannot view sensitive information
 
-### Roles & Permissions
-- `GET /api/roles` - List all roles
-- `POST /api/roles` - Create new role (requires permission)
-- `GET /api/permissions` - List all permissions
-- `POST /api/permissions` - Create new permission (requires permission)
+## 🔧 Customization
 
-### Audit & Dashboard
-- `GET /api/audit-logs` - View audit logs (requires permission)
-- `GET /api/dashboard` - Get dashboard data
-- `GET /dashboard` - Dashboard page
+### Adding New Roles
 
-## Configuration
+1. **Create Role in Database**
+   ```python
+   # In init_db.py or through the admin interface
+   role = crud.create_role(db, schemas.RoleCreate(
+       name="Custom Role",
+       description="Description of the role"
+   ))
+   ```
 
-The application uses environment variables for configuration:
+2. **Assign Permissions**
+   ```python
+   # Assign specific permissions to the role
+   permissions = ["candidates:read", "documents:view"]
+   for perm_name in permissions:
+       permission = crud.get_permission_by_name(db, perm_name)
+       crud.assign_permission_to_role(db, role.id, permission.id)
+   ```
 
-### Database Configuration
-- `DB_HOST` - PostgreSQL host (default: localhost)
-- `DB_PORT` - PostgreSQL port (default: 5432)
-- `DB_NAME` - Database name
-- `DB_USER` - Database user
-- `DB_PASSWORD` - Database password
+### Modifying UI
 
-### Security Configuration
-- `SECRET_KEY` - JWT secret key
-- `ACCESS_TOKEN_EXPIRE_MINUTES` - Token expiration time
+- Templates are located in the `templates/` directory
+- Modify HTML files to customize the interface
+- CSS is embedded in the templates for easy customization
 
-### Application Configuration
-- `APP_NAME` - Application name
-- `ADMIN_EMAIL` - Default admin user email
-- `ADMIN_PASSWORD` - Default admin user password
+## 🔒 Security Features
 
-## Database Setup
+- **JWT Authentication**: Secure token-based authentication
+- **Password Hashing**: Bcrypt for secure password storage
+- **Role-Based Access Control**: Granular permissions system
+- **Audit Logging**: Complete activity tracking
+- **File Upload Validation**: Secure document handling
 
-This application uses PostgreSQL as the database backend.
+## 📊 Monitoring and Logs
 
-### Prerequisites
-1. Install PostgreSQL on your system
-2. Create a database for the application
+### Audit Logs
+- All user activities are logged
+- Includes user, action, resource, and timestamp
+- Accessible through the dashboard for authorized users
 
-### Database Creation
-Connect to PostgreSQL and run:
-```sql
-CREATE DATABASE login_permissions_db;
-CREATE USER login_user WITH PASSWORD 'your_password_here';
-GRANT ALL PRIVILEGES ON DATABASE login_permissions_db TO login_user;
-```
+### Health Check
+- Endpoint: `GET /health`
+- Returns system status and timestamp
 
-### Configuration
-Update your `.env` file with the PostgreSQL connection details:
-```env
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=login_permissions_db
-DB_USER=login_user
-DB_PASSWORD=your_password_here
-```
+## 🚀 Deployment
 
-## Database Schema
+### Production Setup
 
-The application uses SQLAlchemy with PostgreSQL and includes the following models:
+1. **Environment Variables**
+   ```env
+   SECRET_KEY=production-secret-key
+   DATABASE_URL=postgresql://username:password@localhost/dbname
+   ACCESS_TOKEN_EXPIRE_MINUTES=480
+   APP_NAME=HR Management System
+   ```
 
-- **User**: User accounts with authentication
-- **Role**: User roles for RBAC
-- **Permission**: Granular permissions
-- **RolePermission**: Many-to-many relationship between roles and permissions
-- **AuditLog**: System activity tracking
+2. **Database Migration**
+   - For PostgreSQL: Use `setup_postgres.py`
+   - Run migration scripts before deployment
 
-## Security Features
+3. **WSGI Server**
+   ```bash
+   gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker
+   ```
 
-- Password hashing with bcrypt
-- JWT token-based authentication
-- Role-based access control
-- Permission-based route protection
-- Audit logging for security events
-- Secure cookie handling
-
-## Development
-
-For development, you can run the application with auto-reload:
-
-```bash
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-
-## Production Deployment
-
-1. Update environment variables for production
-2. Use a production database (PostgreSQL recommended)
-3. Set up proper SSL/TLS certificates
-4. Configure reverse proxy (nginx recommended)
-5. Use production WSGI server settings
-
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -238,6 +239,24 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 4. Add tests if applicable
 5. Submit a pull request
 
-## License
+## 📝 License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🆘 Support
+
+For support or questions:
+- Check the documentation
+- Review the code comments
+- Create an issue in the repository
+
+## 🔄 Version History
+
+- **v1.0.0**: Initial release with basic RBAC
+- **v1.1.0**: Added candidate management
+- **v1.2.0**: Document upload functionality
+- **v1.3.0**: Improved UI and simplified candidate fields
+
+---
+
+**Built with FastAPI, SQLAlchemy, and modern web technologies** 🚀

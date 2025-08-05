@@ -98,6 +98,29 @@ class UserDashboard(BaseModel):
     permissions: List[str]
     recent_activities: List[AuditLog]
 
+# Candidate schemas
+class CandidateBase(BaseModel):
+    name: str
+    email: str
+
+class CandidateCreate(CandidateBase):
+    document_path: Optional[str] = None
+
+class CandidateUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    document_path: Optional[str] = None
+
+class Candidate(CandidateBase):
+    id: int
+    document_path: Optional[str] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    created_by: int
+    
+    class Config:
+        from_attributes = True
+
 # Update forward references
 User.model_rebuild()
 RoleWithPermissions.model_rebuild()

@@ -77,6 +77,20 @@ class AuditLog(Base):
     # Relationships
     user = relationship("User", back_populates="audit_logs")
 
+class Candidate(Base):
+    __tablename__ = "candidates"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    email = Column(String, nullable=False)
+    document_path = Column(String)  # Path to uploaded document
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_by = Column(Integer, ForeignKey("users.id"))
+    
+    # Relationships
+    creator = relationship("User")
+
 # Create tables
 Base.metadata.create_all(bind=engine)
 

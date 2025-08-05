@@ -1,28 +1,40 @@
-from fastapi import FastAPI, Depends, HTTPException, status, Request, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import FastAPI, Depends, HTTPException, status, Request, Form, UploadFile, File
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
 from fastapi.security import HTTPBearer
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import Optional
+from contextlib import asynccontextmanager
+from jose import jwt, JWTError
+import os
+import shutil
 
 from config import settings
 from database import get_db, engine, Base
 import schemas
 import crud
 import auth
-from auth import get_current_active_user, require_permission
+from auth import get_current_active_user
 from init_db import initialize_database
 
-# Create tables
-Base.metadata.create_all(bind=engine)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    Base.metadata.create_all(bind=engine)
+    try:
+        initialize_database()
+    except Exception as e:
+        print(f"Database initialization error: {e}")
+    yield
+    # Shutdown (if needed)
 
 # Initialize the FastAPI app
 app = FastAPI(
     title=settings.app_name,
-    description="A comprehensive authentication and authorization system with role-based access control",
-    version="1.0.0"
+    description="HR Candidate Management System with role-based access control",
+    version="2.0.0",
+    lifespan=lifespan
 )
 
 # Setup templates
@@ -30,14 +42,6 @@ templates = Jinja2Templates(directory="templates")
 
 # Security
 security = HTTPBearer()
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize database on startup"""
-    try:
-        initialize_database()
-    except Exception as e:
-        print(f"Database initialization error: {e}")
 
 # Auth Routes
 @app.post("/token", response_model=schemas.Token)
@@ -130,7 +134,7 @@ async def dashboard(
             token = token[7:]
         
         # Verify token and get user
-        from jose import jwt, JWTError
+
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
         email: str = payload.get("sub")
         if email is None:
@@ -172,7 +176,7 @@ async def user_management_page(
             token = token[7:]
         
         # Verify token and get user
-        from jose import jwt, JWTError
+
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
         email: str = payload.get("sub")
         if email is None:
@@ -225,7 +229,7 @@ async def create_user_form(
             token = token[7:]
         
         # Verify token and get user
-        from jose import jwt, JWTError
+
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
         email_token: str = payload.get("sub")
         if email_token is None:
@@ -299,116 +303,296 @@ async def create_user_form(
             "error_message": f"An error occurred while creating the user: {str(e)}"
         })
 
+# Candidate Management Web Routes
+@app.get("/candidates", response_class=HTMLResponse)
+async def candidates_page(
+    request: Request,
+    success_message: Optional[str] = None,
+    error_message: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    # Get token from cookie and verify user
+    token = request.cookies.get("access_token")
+    if not token:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    try:
+        # Remove "Bearer " prefix if present
+        if token.startswith("Bearer "):
+            token = token[7:]
+        
+        # Verify token and get user
+
+        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        email: str = payload.get("sub")
+        if email is None:
+            raise JWTError()
+        
+        current_user = crud.get_user_by_email(db, email)
+        if current_user is None:
+            raise JWTError()
+        
+        # Check if user has permission to view candidates
+        if not auth.check_permission(current_user, "candidates", "read", db):
+            raise HTTPException(status_code=403, detail="Not enough permissions")
+        
+        # Get all candidates
+        candidates = crud.get_candidates(db)
+        
+        # Check permissions for UI controls
+        can_create_candidates = auth.check_permission(current_user, "candidates", "create", db)
+        can_delete_candidates = auth.check_permission(current_user, "candidates", "delete", db)
+        can_manage_users = auth.check_permission(current_user, "users", "manage", db)
+        
+        return templates.TemplateResponse("candidates.html", {
+            "request": request,
+            "app_name": settings.app_name,
+            "current_user": current_user,
+            "candidates": candidates,
+            "can_create_candidates": can_create_candidates,
+            "can_delete_candidates": can_delete_candidates,
+            "can_manage_users": can_manage_users,
+            "success_message": success_message,
+            "error_message": error_message
+        })
+        
+    except JWTError:
+        return RedirectResponse(url="/login", status_code=302)
+    except HTTPException:
+        return RedirectResponse(url="/dashboard?error=insufficient_permissions", status_code=302)
+
+@app.post("/candidates/create")
+async def create_candidate_web(
+    request: Request,
+    name: str = Form(...),
+    email: str = Form(...),
+    document: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db)
+):
+    # Get token from cookie and verify user
+    token = request.cookies.get("access_token")
+    if not token:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    try:
+        # Remove "Bearer " prefix if present
+        if token.startswith("Bearer "):
+            token = token[7:]
+        
+        # Verify token and get user
+
+        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        email_token: str = payload.get("sub")
+        if email_token is None:
+            raise JWTError()
+        
+        current_user = crud.get_user_by_email(db, email_token)
+        if current_user is None:
+            raise JWTError()
+        
+        # Check if user has permission to create candidates
+        if not auth.check_permission(current_user, "candidates", "create", db):
+            raise HTTPException(status_code=403, detail="Not enough permissions")
+        
+        # Handle file upload
+        document_path = None
+        if document and document.filename:
+            # Create documents directory if it doesn't exist
+            os.makedirs("documents", exist_ok=True)
+            
+            # Generate unique filename
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            file_extension = os.path.splitext(document.filename)[1]
+            safe_filename = f"{timestamp}_{document.filename.replace(' ', '_')}"
+            document_path = f"documents/{safe_filename}"
+            
+            # Save the file
+            with open(document_path, "wb") as buffer:
+                shutil.copyfileobj(document.file, buffer)
+        
+        # Create candidate
+        candidate_data = schemas.CandidateCreate(
+            name=name,
+            email=email,
+            document_path=document_path
+        )
+        
+        new_candidate = crud.create_candidate(db, candidate_data, current_user.id)
+        
+        # Log the action
+        crud.create_audit_log(
+            db, 
+            current_user.id, 
+            "create", 
+            "candidates", 
+            f"Created candidate: {name}" + (f" with document: {document.filename}" if document else "")
+        )
+        
+        return RedirectResponse(
+            url=f"/candidates?success_message=Candidate '{name}' created successfully!",
+            status_code=302
+        )
+        
+    except JWTError:
+        return RedirectResponse(url="/login", status_code=302)
+    except HTTPException:
+        return RedirectResponse(url="/candidates?error_message=Insufficient permissions", status_code=302)
+    except Exception as e:
+        return RedirectResponse(
+            url=f"/candidates?error_message=Error creating candidate: {str(e)}",
+            status_code=302
+        )
+
+@app.post("/candidates/delete/{candidate_id}")
+async def delete_candidate_web(
+    request: Request,
+    candidate_id: int,
+    db: Session = Depends(get_db)
+):
+    # Get token from cookie and verify user
+    token = request.cookies.get("access_token")
+    if not token:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    try:
+        # Remove "Bearer " prefix if present
+        if token.startswith("Bearer "):
+            token = token[7:]
+        
+        # Verify token and get user
+
+        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        email_token: str = payload.get("sub")
+        if email_token is None:
+            raise JWTError()
+        
+        current_user = crud.get_user_by_email(db, email_token)
+        if current_user is None:
+            raise JWTError()
+        
+        # Check if user has permission to delete candidates
+        if not auth.check_permission(current_user, "candidates", "delete", db):
+            raise HTTPException(status_code=403, detail="Not enough permissions")
+        
+        # Get candidate before deletion
+        candidate = crud.get_candidate(db, candidate_id)
+        if not candidate:
+            return RedirectResponse(
+                url="/candidates?error_message=Candidate not found",
+                status_code=302
+            )
+        
+        # Delete candidate
+        crud.delete_candidate(db, candidate_id)
+        
+        # Log the action
+        crud.create_audit_log(
+            db,
+            current_user.id,
+            "delete",
+            "candidates",
+            f"Deleted candidate: {candidate.name}"
+        )
+        
+        return RedirectResponse(
+            url=f"/candidates?success_message=Candidate '{candidate.name}' deleted successfully!",
+            status_code=302
+        )
+        
+    except JWTError:
+        return RedirectResponse(url="/login", status_code=302)
+    except HTTPException:
+        return RedirectResponse(url="/candidates?error_message=Insufficient permissions", status_code=302)
+    except Exception as e:
+        return RedirectResponse(
+            url=f"/candidates?error_message=Error deleting candidate: {str(e)}",
+            status_code=302
+        )
+
+@app.get("/candidates/{candidate_id}/document")
+async def view_candidate_document(
+    request: Request,
+    candidate_id: int,
+    db: Session = Depends(get_db)
+):
+    # Get token from cookie and verify user
+    token = request.cookies.get("access_token")
+    if not token:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    try:
+        # Remove "Bearer " prefix if present
+        if token.startswith("Bearer "):
+            token = token[7:]
+        
+        # Verify token and get user
+
+        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        email: str = payload.get("sub")
+        if email is None:
+            raise JWTError()
+        
+        current_user = crud.get_user_by_email(db, email)
+        if current_user is None:
+            raise JWTError()
+        
+        # Check if user has permission to view candidates
+        if not auth.check_permission(current_user, "candidates", "read", db):
+            raise HTTPException(status_code=403, detail="Not enough permissions")
+        
+        # Get candidate
+        candidate = crud.get_candidate(db, candidate_id)
+        if not candidate:
+            raise HTTPException(status_code=404, detail="Candidate not found")
+        
+        if not candidate.document_path or not os.path.exists(candidate.document_path):
+            raise HTTPException(status_code=404, detail="Document not found")
+        
+        # Log the action
+        crud.create_audit_log(
+            db,
+            current_user.id,
+            "view",
+            "documents",
+            f"Viewed document for candidate: {candidate.name}"
+        )
+        
+        return FileResponse(
+            path=candidate.document_path,
+            filename=os.path.basename(candidate.document_path),
+            media_type='application/octet-stream'
+        )
+        
+    except JWTError:
+        return RedirectResponse(url="/login", status_code=302)
+    except HTTPException as e:
+        return RedirectResponse(url=f"/candidates?error_message={e.detail}", status_code=302)
+    except Exception as e:
+        return RedirectResponse(
+            url=f"/candidates?error_message=Error viewing document: {str(e)}",
+            status_code=302
+        )
+
 # API Routes
-@app.get("/", response_class=HTMLResponse)
-async def root(request: Request):
-    return RedirectResponse(url="/login")
+@app.get("/")
+async def root():
+    """Redirect to login page"""
+    return RedirectResponse(url="/login", status_code=302)
 
-@app.get("/api/users/me", response_model=schemas.User)
-async def read_users_me(current_user: schemas.User = Depends(get_current_active_user)):
-    return current_user
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {"status": "healthy", "timestamp": datetime.utcnow()}
 
-@app.get("/api/users", response_model=List[schemas.User])
-async def read_users(
-    skip: int = 0,
-    limit: int = 100,
-    db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(require_permission("users", "read"))
-):
-    users = crud.get_users(db, skip=skip, limit=limit)
-    return users
-
-@app.post("/api/users", response_model=schemas.User)
-async def create_user(
-    user: schemas.UserCreate,
-    db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(require_permission("users", "manage"))
-):
-    db_user = crud.get_user_by_email(db, email=user.email)
-    if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    
-    created_user = crud.create_user(db=db, user=user)
-    
-    # Log the action
-    crud.create_audit_log(
-        db, current_user.id, "create", "user", 
-        f"Created user: {created_user.email}"
-    )
-    
-    return created_user
-
-@app.get("/api/roles", response_model=List[schemas.Role])
-async def read_roles(
-    db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(require_permission("roles", "read"))
-):
-    roles = crud.get_roles(db)
-    return roles
-
-@app.post("/api/roles", response_model=schemas.Role)
-async def create_role(
-    role: schemas.RoleCreate,
-    db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(require_permission("roles", "manage"))
-):
-    created_role = crud.create_role(db=db, role=role)
-    
-    # Log the action
-    crud.create_audit_log(
-        db, current_user.id, "create", "role", 
-        f"Created role: {created_role.name}"
-    )
-    
-    return created_role
-
-@app.get("/api/permissions", response_model=List[schemas.Permission])
-async def read_permissions(
-    db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_active_user)
-):
-    permissions = crud.get_permissions(db)
-    return permissions
-
-@app.post("/api/permissions", response_model=schemas.Permission)
-async def create_permission(
-    permission: schemas.PermissionCreate,
-    db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(require_permission("system", "manage"))
-):
-    created_permission = crud.create_permission(db=db, permission=permission)
-    
-    # Log the action
-    crud.create_audit_log(
-        db, current_user.id, "create", "permission", 
-        f"Created permission: {created_permission.name}"
-    )
-    
-    return created_permission
-
-@app.get("/api/audit-logs", response_model=List[schemas.AuditLog])
-async def read_audit_logs(
-    skip: int = 0,
-    limit: int = 100,
-    user_id: Optional[int] = None,
-    db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(require_permission("audit", "read"))
-):
-    logs = crud.get_audit_logs(db, user_id=user_id, skip=skip, limit=limit)
-    return logs
-
+# Essential API endpoints for dashboard data
 @app.get("/api/dashboard", response_model=schemas.UserDashboard)
 async def get_dashboard_data(
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(get_current_active_user)
 ):
+    """Get dashboard data for current user"""
     dashboard_data = crud.get_user_dashboard_data(db, current_user.id)
     return dashboard_data
-
-# Health check
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy", "timestamp": datetime.utcnow()}
 
 if __name__ == "__main__":
     import uvicorn
