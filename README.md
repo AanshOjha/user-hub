@@ -1,5 +1,5 @@
 # HR Candidate Management System
-
+[Demo Video](https://drive.google.com/file/d/1aLY33dbA2CT_DYXsIrYPsNcxbsN5OzSR/view?usp=drive_link)
 A modern, role-based candidate management system with document upload capabilities and comprehensive permissions system.
 
 ## 🚀 Features
