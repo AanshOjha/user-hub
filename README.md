@@ -47,13 +47,24 @@ A comprehensive FastAPI application with JWT-based authentication and role-based
    cd Login-Permissions
    ```
 
-2. **Install dependencies**
+2. **Install PostgreSQL**
+   - Install PostgreSQL on your system
+   - Create a database: `CREATE DATABASE login_permissions_db;`
+
+3. **Install dependencies**
    ```bash
    pip install -r requirements.txt
    ```
 
-3. **Set up environment variables**
-   - Copy `.env` file and update with your settings
+4. **Set up environment variables**
+   - Copy `.env` file and update with your PostgreSQL settings:
+     ```env
+     DB_HOST=localhost
+     DB_PORT=5432
+     DB_NAME=login_permissions_db
+     DB_USER=postgres
+     DB_PASSWORD=your_postgres_password
+     ```
    - Generate a secure SECRET_KEY for production
    - **Set admin credentials**:
      ```env
@@ -61,12 +72,12 @@ A comprehensive FastAPI application with JWT-based authentication and role-based
      ADMIN_PASSWORD=your-secure-password
      ```
 
-4. **Initialize the database**
+5. **Initialize the database**
    ```bash
    python init_db.py
    ```
 
-5. **Run the application**
+6. **Run the application**
    ```bash
    python main.py
    ```
@@ -142,16 +153,51 @@ The application includes a comprehensive user management interface for system ad
 
 The application uses environment variables for configuration:
 
-- `DATABASE_URL` - Database connection string
+### Database Configuration
+- `DB_HOST` - PostgreSQL host (default: localhost)
+- `DB_PORT` - PostgreSQL port (default: 5432)
+- `DB_NAME` - Database name
+- `DB_USER` - Database user
+- `DB_PASSWORD` - Database password
+
+### Security Configuration
 - `SECRET_KEY` - JWT secret key
 - `ACCESS_TOKEN_EXPIRE_MINUTES` - Token expiration time
+
+### Application Configuration
 - `APP_NAME` - Application name
 - `ADMIN_EMAIL` - Default admin user email
 - `ADMIN_PASSWORD` - Default admin user password
 
+## Database Setup
+
+This application uses PostgreSQL as the database backend.
+
+### Prerequisites
+1. Install PostgreSQL on your system
+2. Create a database for the application
+
+### Database Creation
+Connect to PostgreSQL and run:
+```sql
+CREATE DATABASE login_permissions_db;
+CREATE USER login_user WITH PASSWORD 'your_password_here';
+GRANT ALL PRIVILEGES ON DATABASE login_permissions_db TO login_user;
+```
+
+### Configuration
+Update your `.env` file with the PostgreSQL connection details:
+```env
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=login_permissions_db
+DB_USER=login_user
+DB_PASSWORD=your_password_here
+```
+
 ## Database Schema
 
-The application uses SQLAlchemy with the following models:
+The application uses SQLAlchemy with PostgreSQL and includes the following models:
 
 - **User**: User accounts with authentication
 - **Role**: User roles for RBAC
