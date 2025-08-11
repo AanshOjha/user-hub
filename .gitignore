@@ -206,7 +206,4 @@ yarn.lock
 
 # Python virtual environments
 .python-version
-
-UPCOMING_FEATURES.md
-documents/*.pdf
-documents/*.docx
+documents/
