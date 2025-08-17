@@ -72,13 +72,35 @@ A modern, role-based candidate management system with document upload capabiliti
    ```
 
 4. **Set up environment variables**
-   Create a `.env` file in the root directory:
-   ```env
-   SECRET_KEY=your-super-secret-key-here
-   DATABASE_URL=sqlite:///./app.db
-   ACCESS_TOKEN_EXPIRE_MINUTES=1440
-   APP_NAME=HR Candidate Management
+   Copy the example environment file and customize it:
+   ```bash
+   cp .env.example .env
    ```
+   
+   Edit `.env` with your configuration. **Important**: Change these values for production:
+   ```env
+   # Database Configuration
+   DB_HOST=localhost
+   DB_PORT=5432
+   DB_NAME=login_permissions_db
+   DB_USER=postgres
+   DB_PASSWORD=your_secure_password
+   
+   # Security Configuration (CHANGE THESE!)
+   SECRET_KEY=your-super-secure-secret-key-here-min-32-chars
+   ALGORITHM=HS256
+   ACCESS_TOKEN_EXPIRE_MINUTES=30
+   
+   # Admin Account (CHANGE THESE!)
+   ADMIN_EMAIL=admin@yourcompany.com
+   ADMIN_PASSWORD=secure_admin_password
+   
+   # Application Configuration
+   APP_NAME=Login Permissions System
+   DEBUG=False
+   ```
+   
+   **Security Note**: See `SECURITY.md` for detailed security configuration guide.
 
 5. **Initialize the database**
    ```bash

@@ -11,7 +11,11 @@ from database import get_db
 from database import User as UserModel
 import schemas
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(
+    schemes=["bcrypt"], 
+    deprecated="auto",
+    bcrypt__rounds=settings.bcrypt_rounds
+)
 security = HTTPBearer()
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
