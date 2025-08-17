@@ -17,6 +17,7 @@ import crud
 import auth
 from auth import get_current_active_user
 from init_db import initialize_database
+from saml_auth import saml_auth
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -117,6 +118,141 @@ async def logout():
     response = RedirectResponse(url="/login", status_code=302)
     response.delete_cookie(key="access_token")
     return response
+
+# SAML Authentication Routes
+@app.get("/auth/saml/login")
+async def saml_login(request: Request):
+    """Initiate SAML login"""
+    if not settings.saml_enabled:
+        raise HTTPException(status_code=404, detail="SAML authentication is not enabled")
+    
+    try:
+        # Ensure request has all required attributes
+        if not hasattr(request, 'url') or not request.url:
+            raise HTTPException(status_code=400, detail="Invalid request object")
+        
+        redirect_url = saml_auth.initiate_login(request)
+        return RedirectResponse(url=redirect_url, status_code=302)
+    except Exception as e:
+        # Log the full error for debugging
+        import traceback
+        print(f"SAML Login Error: {e}")
+        print(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"SAML login initiation failed: {str(e)}")
+
+@app.post("/acs")
+async def saml_acs(request: Request, db: Session = Depends(get_db)):
+    """SAML Assertion Consumer Service - handles SAML response"""
+    if not settings.saml_enabled:
+        raise HTTPException(status_code=404, detail="SAML authentication is not enabled")
+    
+    try:
+        # Parse form data for SAML response
+        form_data = await request.form()
+        request._form = form_data
+        
+        # Process SAML response
+        user_data = saml_auth.process_response(request)
+        
+        # Create or update user in database
+        user = crud.create_or_update_saml_user(db, user_data)
+        
+        # Create access token
+        access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+        access_token = auth.create_access_token(
+            data={"sub": user.email}, expires_delta=access_token_expires
+        )
+        
+        # Log the login
+        crud.create_audit_log(db, user.id, "login", "authentication", 
+                             f"User logged in via SAML with role: {user_data.get('role', 'unknown')}")
+        
+        # Redirect to dashboard with token in cookie
+        response = RedirectResponse(url="/dashboard", status_code=302)
+        response.set_cookie(key="access_token", value=f"Bearer {access_token}", httponly=True)
+        response.set_cookie(key="saml_session", value=user_data.get('session_index', ''), httponly=True)
+        response.set_cookie(key="saml_subject_id", value=user_data.get('nameid', ''), httponly=True)
+        
+        return response
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        return RedirectResponse(url=f"/login?error=SAML authentication failed: {str(e)}", status_code=302)
+
+@app.get("/auth/saml/metadata")
+async def saml_metadata(request: Request):
+    """SAML Service Provider metadata"""
+    if not settings.saml_enabled:
+        raise HTTPException(status_code=404, detail="SAML authentication is not enabled")
+    
+    try:
+        metadata = saml_auth.get_metadata(request)
+        return HTMLResponse(content=metadata, media_type="application/xml")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Metadata generation failed: {str(e)}")
+
+@app.get("/auth/saml/logout")
+async def saml_logout(request: Request, db: Session = Depends(get_db)):
+    """Initiate SAML logout"""
+    if not settings.saml_enabled:
+        raise HTTPException(status_code=404, detail="SAML authentication is not enabled")
+    
+    try:
+        # Get SAML session data from cookies
+        saml_subject_id = request.cookies.get("saml_subject_id")
+        saml_session_index = request.cookies.get("saml_session")
+        
+        # Clear local session
+        response = RedirectResponse(url="/login", status_code=302)
+        response.delete_cookie(key="access_token")
+        response.delete_cookie(key="saml_session")
+        response.delete_cookie(key="saml_subject_id")
+        
+        # If we have SAML session data, initiate SAML logout
+        if saml_subject_id and saml_session_index:
+            logout_url = saml_auth.initiate_logout(request, saml_subject_id, saml_session_index)
+            return RedirectResponse(url=logout_url, status_code=302)
+        
+        return response
+        
+    except Exception as e:
+        # Fallback to local logout if SAML logout fails
+        response = RedirectResponse(url="/login", status_code=302)
+        response.delete_cookie(key="access_token")
+        response.delete_cookie(key="saml_session")
+        response.delete_cookie(key="saml_subject_id")
+        return response
+
+@app.post("/sls")
+async def saml_sls(request: Request):
+    """SAML Single Logout Service - handles logout responses"""
+    if not settings.saml_enabled:
+        raise HTTPException(status_code=404, detail="SAML authentication is not enabled")
+    
+    try:
+        # Parse form data for SAML logout response
+        form_data = await request.form()
+        request._form = form_data
+        
+        # Process SAML logout response
+        saml_auth.process_logout_response(request)
+        
+        # Clear all session cookies and redirect to login
+        response = RedirectResponse(url="/login", status_code=302)
+        response.delete_cookie(key="access_token")
+        response.delete_cookie(key="saml_session")
+        response.delete_cookie(key="saml_subject_id")
+        
+        return response
+        
+    except Exception as e:
+        # Even if SAML logout processing fails, clear local session
+        response = RedirectResponse(url="/login", status_code=302)
+        response.delete_cookie(key="access_token")
+        response.delete_cookie(key="saml_session")
+        response.delete_cookie(key="saml_subject_id")
+        return response
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(

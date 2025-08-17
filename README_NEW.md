@@ -15,74 +15,39 @@ A FastAPI-based HR management system with role-based access control and Azure AD
 git clone <repository-url>
 cd Login-Permissions
 python -m venv .venv
-.venv\Scripts\activate  # Windows (.venv/bin/activate for Linux/Mac)
+.venv\Scripts\activate  # Windows
 pip install -r requirements.txt
 
-# 2. Create database
+# 2. Configure database
 createdb login_permissions_db
+cp .env.example .env
+# Edit .env with your database credentials
 
-# 3. Setup environment
-# Create .env file with the following:
+# 3. Run application
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
+
+## 🔧 Configuration
+
+Edit `.env`:
+```env
+# Database
 DB_HOST=localhost
 DB_NAME=login_permissions_db
 DB_USER=your_db_user
 DB_PASSWORD=your_db_password
-SECRET_KEY=your-secret-key-here
+
+# Admin account
 ADMIN_EMAIL=admin@example.com
 ADMIN_PASSWORD=admin123
 
-# Optional SAML Configuration
-SAML_ENABLED=true
+# SAML (Optional)
+SAML_ENABLED=True
 AZURE_TENANT_ID=your_tenant_id
 AZURE_SAML_CERTIFICATE=your_certificate
-
-# 4. Initialize database and run
-python init_db.py
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-## 🔐 User Roles & Permissions
-
-- **Admin**: Full system access, user management
-- **HR Manager**: Manage candidates and HR operations
-- **Interviewer**: Access candidate information, conduct interviews
-- **HR Intern**: Limited access to candidate data
-
-## 🌐 Access Points
-
-- **Web Interface**: http://localhost:8000
-- **Admin Dashboard**: Login with admin credentials
-- **SAML Login**: http://localhost:8000/auth/saml/login (if enabled)
-- **API Documentation**: http://localhost:8000/docs
-
-## 📋 Azure AD Role Mapping
-
-Azure AD roles automatically map to system roles:
-- `hr-manager` → HR Manager
-- `hr-interviewer` → Interviewer  
-- `hr-intern` → HR Intern
-- Default → HR Intern (for unmapped roles)
-
-## 🛠️ Key Features
-
-- Local and SAML authentication
-- Role-based access control
-- Candidate management
-- User administration
-- Responsive web interface
-- RESTful API with auto-documentation
-
-## 📝 Development
-
-```bash
-# Run in development mode
-uvicorn main:app --reload
-
-# Database operations
-python init_db.py  # Initialize/reset database
-```
-
-For production deployment, ensure proper security configuration in `.env` and use a production WSGI server.
+## 🔐 User Roles
 
 | Role | Permissions |
 |------|-------------|

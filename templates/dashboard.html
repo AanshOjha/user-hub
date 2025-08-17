@@ -69,6 +69,35 @@
             font-weight: 600;
         }
 
+        .auth-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .saml-badge {
+            background: #0078d4;
+            color: white;
+        }
+
+        .local-badge {
+            background: #10b981;
+            color: white;
+        }
+
+        .azure-role-badge {
+            background: rgba(0, 120, 212, 0.1);
+            color: #0078d4;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+            margin-left: 8px;
+            border: 1px solid rgba(0, 120, 212, 0.3);
+        }
+
         .logout-btn {
             background: linear-gradient(135deg, #ef4444, #dc2626);
             color: white;
@@ -314,11 +343,32 @@
                     <i class="fas fa-user-circle"></i>
                     <span>{{user.full_name}}</span>
                     <span class="role-badge">{{user.role.name if user.role else 'No Role'}}</span>
+                    {% if user.is_saml_user %}
+                        <span class="auth-badge saml-badge">
+                            <i class="fab fa-microsoft"></i>
+                            SAML
+                        </span>
+                        {% if user.azure_role %}
+                            <span class="azure-role-badge">Azure: {{user.azure_role}}</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="auth-badge local-badge">
+                            <i class="fas fa-key"></i>
+                            Local
+                        </span>
+                    {% endif %}
                 </div>
-                <a href="/logout" class="logout-btn">
-                    <i class="fas fa-sign-out-alt"></i>
-                    Logout
-                </a>
+                {% if user.is_saml_user %}
+                    <a href="/auth/saml/logout" class="logout-btn">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Logout
+                    </a>
+                {% else %}
+                    <a href="/logout" class="logout-btn">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Logout
+                    </a>
+                {% endif %}
             </div>
         </div>
 

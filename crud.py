@@ -169,3 +169,78 @@ def delete_candidate(db: Session, candidate_id: int):
         db.delete(db_candidate)
         db.commit()
     return db_candidate
+
+# SAML User Management
+def create_or_update_saml_user(db: Session, user_data: dict):
+    """Create or update user from SAML authentication"""
+    email = user_data.get('email')
+    if not email:
+        raise ValueError("Email is required for SAML user creation")
+    
+    # Check if user already exists
+    db_user = get_user_by_email(db, email)
+    
+    # Map Azure role to internal role - Updated mapping based on your Azure AD roles
+    azure_role = user_data.get('role', '').lower()
+    role_mapping = {
+        # Azure AD Role -> Internal Role Name (exact match to database)
+        'hr-manager': 'HR Manager',
+        'hiring-manager': 'Hiring Manager',
+        'hr-intern': 'HR Intern',
+        'recruiter': 'Recruiter',
+        'super-admin': 'Super Admin',
+        'sourcer': 'Sourcer'
+    }
+    
+    internal_role_name = role_mapping.get(azure_role, 'HR Intern')  # Default to HR Intern
+    role = get_role_by_name(db, internal_role_name)
+    
+    # If the mapped role doesn't exist, fallback to HR Intern
+    if not role:
+        print(f"Warning: Role '{internal_role_name}' not found for Azure role '{azure_role}', using HR Intern")
+        role = get_role_by_name(db, 'HR Intern')
+        
+        # If HR Intern doesn't exist either, log error
+        if not role:
+            print(f"Error: Default role 'HR Intern' not found in database!")
+            return None
+    
+    if db_user:
+        # Update existing user
+        db_user.full_name = user_data.get('name', db_user.full_name)
+        db_user.is_saml_user = True
+        db_user.saml_subject_id = user_data.get('nameid')
+        db_user.saml_session_index = user_data.get('session_index')
+        db_user.azure_role = user_data.get('role')
+        if role:
+            db_user.role_id = role.id
+        db_user.is_active = True
+        db.commit()
+        db.refresh(db_user)
+        
+        # Log role assignment
+        print(f"Updated SAML user {email} with Azure role '{azure_role}' -> Internal role '{internal_role_name}'")
+    else:
+        # Create new user
+        db_user = User(
+            email=email,
+            full_name=user_data.get('name', email.split('@')[0]),
+            is_saml_user=True,
+            saml_subject_id=user_data.get('nameid'),
+            saml_session_index=user_data.get('session_index'),
+            azure_role=user_data.get('role'),
+            role_id=role.id if role else None,
+            is_active=True
+        )
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
+        
+        # Log role assignment
+        print(f"Created SAML user {email} with Azure role '{azure_role}' -> Internal role '{internal_role_name}'")
+    
+    return db_user
+
+def get_role_by_name(db: Session, role_name: str):
+    """Get role by name"""
+    return db.query(Role).filter(Role.name == role_name).first()

@@ -3,7 +3,7 @@ from typing import Optional, List
 
 class Settings(BaseSettings):
     # Database Configuration
-    db_host: str
+    db_host: str = "localhost"
     db_port: int = 5432
     db_name: str
     db_user: str
@@ -13,32 +13,37 @@ class Settings(BaseSettings):
     def database_url(self) -> str:
         return f"postgresql://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
     
-    # Security Configuration - All from environment variables
+    # Security Configuration
     secret_key: str
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
+    bcrypt_rounds: int = 12
     
     # Application Configuration
-    app_name: str = "Login Permissions System"
-    debug: bool = False  # Changed to False for production safety
+    app_name: str = "HR Management System"
+    debug: bool = False
+    base_url: str = "http://localhost:8000"
     
-    # Admin Configuration - From environment variables
+    # Admin Configuration
     admin_email: str
     admin_password: str
     
-    # Additional Security Settings (Optional)
-    cors_origins: Optional[str] = None  # Comma-separated list of allowed origins
+    # SAML Configuration (Optional)
+    saml_enabled: bool = False
+    azure_tenant_id: str = ""
+    azure_saml_certificate: str = ""
+    
+    # Security Settings
+    cors_origins: Optional[str] = None
     max_login_attempts: int = 5
-    login_lockout_duration: int = 300  # seconds
-    session_timeout: int = 3600  # seconds
-    bcrypt_rounds: int = 12
+    login_lockout_duration: int = 300
+    session_timeout: int = 3600
     
     @property
     def cors_origins_list(self) -> List[str]:
-        """Convert comma-separated CORS origins to list"""
         if self.cors_origins:
             return [origin.strip() for origin in self.cors_origins.split(",")]
-        return ["*"]  # Allow all origins in development (not recommended for production)
+        return ["*"]
     
     class Config:
         env_file = ".env"

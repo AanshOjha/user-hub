@@ -24,8 +24,7 @@
 - 🔄 Automatic candidate categorization
 - 🔄 Smart matching against job requirements
 - 🔄 AI-generated candidate summaries
-- 🔄 Natural language query processing 
-> (show me candidates name, contact no, and resume link - who are from from noida, with 2 years experience, with skills k8s, aws)
+- 🔄 Natural language query processing
 
 ### Phase 3: Communication & Workflow
 - 🔄 Email integration (send emails to candidates)

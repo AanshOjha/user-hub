@@ -38,7 +38,19 @@ def authenticate_user(db: Session, email: str, password: str):
     user = db.query(UserModel).filter(UserModel.email == email).first()
     if not user:
         return False
+    # For SAML users, password authentication is not applicable
+    if user.is_saml_user:
+        return False
     if not verify_password(password, user.hashed_password):
+        return False
+    return user
+
+def authenticate_saml_user(db: Session, email: str):
+    """Authenticate user via SAML (no password required)"""
+    user = db.query(UserModel).filter(UserModel.email == email).first()
+    if not user:
+        return False
+    if not user.is_saml_user:
         return False
     return user
 

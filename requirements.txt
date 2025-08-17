@@ -11,3 +11,5 @@ aiofiles>=23.0.0
 pydantic>=2.0.0
 pydantic-settings>=2.0.0
 email-validator>=2.0.0
+python3-saml>=1.15.0
+starlette-saml>=1.0.0

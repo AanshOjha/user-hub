@@ -16,11 +16,17 @@ class User(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
-    hashed_password = Column(String, nullable=False)
+    hashed_password = Column(String, nullable=True)  # Made nullable for SAML users
     full_name = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # SAML-related fields (using existing schema)
+    is_saml_user = Column(Boolean, default=False)  # Existing column
+    saml_subject_id = Column(String, nullable=True)  # Existing column
+    saml_session_index = Column(String, nullable=True)  # Additional session data
+    azure_role = Column(String, nullable=True)  # Store the Azure AD role claim
     
     # Relationship to role
     role_id = Column(Integer, ForeignKey("roles.id"))
