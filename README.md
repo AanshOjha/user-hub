@@ -13,13 +13,13 @@ A production-ready HR management platform that streamlines candidate tracking an
 ## 📸 Screenshots
 
 ### Dashboard Overview
-![Dashboard](https://via.placeholder.com/800x400?text=HR+Dashboard+Screenshot)
+![Dashboard](assets/dashboard.png)
 
 ### User Management Interface
-![User Management](https://via.placeholder.com/800x400?text=User+Management+Screenshot)
+![User Management](assets/user-management.png)
 
 ### Candidate Management
-![Candidates](https://via.placeholder.com/800x400?text=Candidate+Management+Screenshot)
+![Candidates](assets/candidate.png)
 
 ## 🎯 Problem & Motivation
 
