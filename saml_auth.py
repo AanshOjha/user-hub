@@ -1,10 +1,7 @@
 from onelogin.saml2.auth import OneLogin_Saml2_Auth
 from onelogin.saml2.settings import OneLogin_Saml2_Settings
-from onelogin.saml2.utils import OneLogin_Saml2_Utils
 from fastapi import Request, HTTPException
 from typing import Dict, Any, Optional
-import json
-import os
 from config import settings
 
 class SAMLConfig:
@@ -122,16 +119,6 @@ class SAMLAuth:
             'session_index': auth.get_session_index(),
             'all_attributes': attributes
         }
-        
-        # Debug: Print all available attributes to help troubleshoot
-        print("=== SAML Attributes Debug ===")
-        print(f"All available attribute keys: {list(attributes.keys())}")
-        for key, value in attributes.items():
-            print(f"  {key}: {value}")
-        print(f"Object identifier: {user_data.get('objectidentifier')}")
-        print(f"Email: {user_data.get('email')}")
-        print(f"Name ID: {user_data.get('nameid')}")
-        print("==============================")
         
         return user_data
     

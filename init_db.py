@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from database import get_db, Role, Permission, RolePermission, User
+from database import get_db, Role, Permission
 import crud
 import schemas
 

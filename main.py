@@ -134,10 +134,6 @@ async def saml_login(request: Request):
         redirect_url = saml_auth.initiate_login(request)
         return RedirectResponse(url=redirect_url, status_code=302)
     except Exception as e:
-        # Log the full error for debugging
-        import traceback
-        print(f"SAML Login Error: {e}")
-        print(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"SAML login initiation failed: {str(e)}")
 
 @app.post("/acs")

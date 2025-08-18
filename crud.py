@@ -3,7 +3,6 @@ from sqlalchemy import and_
 from database import User, Role, Permission, RolePermission, AuditLog, Candidate
 import schemas
 from auth import get_password_hash
-from datetime import datetime
 
 def create_user(db: Session, user: schemas.UserCreate):
     """Create a normal password-based user"""
@@ -201,13 +200,7 @@ def create_or_update_saml_user(db: Session, user_data: dict):
     email = user_data.get('email')
     saml_subject_id = user_data.get('objectidentifier')  # This is the objectidentifier claim
     
-    # Debug: Print what we received
-    print("=== SAML User Data Debug ===")
-    print(f"Email: {email}")
-    print(f"Object identifier: {saml_subject_id}")
-    print(f"All user_data keys: {list(user_data.keys())}")
-    print(f"Raw user_data: {user_data}")
-    print("===========================")
+
     
     if not email or not saml_subject_id:
         print(f"Missing required data - Email: {email}, SAML Subject ID: {saml_subject_id}")
