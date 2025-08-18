@@ -6,17 +6,42 @@ from auth import get_password_hash
 from datetime import datetime
 
 def create_user(db: Session, user: schemas.UserCreate):
+    """Create a normal password-based user"""
+    if not user.password:
+        raise ValueError("Password is required for normal users")
+    
     hashed_password = get_password_hash(user.password)
     db_user = User(
         email=user.email,
         hashed_password=hashed_password,
         full_name=user.full_name,
-        role_id=user.role_id
+        role_id=user.role_id,
+        is_saml_user=False
     )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
     return db_user
+
+def create_saml_user(db: Session, user: schemas.UserCreateSAML):
+    """Create a SAML user"""
+    db_user = User(
+        email=user.email,
+        full_name=user.full_name,
+        role_id=user.role_id,
+        is_saml_user=True,
+        saml_subject_id=user.saml_subject_id,
+        azure_role=user.azure_role,
+        is_active=True
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+def get_user_by_saml_subject_id(db: Session, saml_subject_id: str):
+    """Get user by their SAML subject ID (objectidentifier claim)"""
+    return db.query(User).filter(User.saml_subject_id == saml_subject_id).first()
 
 def get_user(db: Session, user_id: int):
     return db.query(User).filter(User.id == user_id).first()
@@ -174,21 +199,36 @@ def delete_candidate(db: Session, candidate_id: int):
 def create_or_update_saml_user(db: Session, user_data: dict):
     """Create or update user from SAML authentication"""
     email = user_data.get('email')
-    if not email:
-        raise ValueError("Email is required for SAML user creation")
+    saml_subject_id = user_data.get('objectidentifier')  # This is the objectidentifier claim
     
-    # Check if user already exists
-    db_user = get_user_by_email(db, email)
+    # Debug: Print what we received
+    print("=== SAML User Data Debug ===")
+    print(f"Email: {email}")
+    print(f"Object identifier: {saml_subject_id}")
+    print(f"All user_data keys: {list(user_data.keys())}")
+    print(f"Raw user_data: {user_data}")
+    print("===========================")
     
-    # Map Azure role to internal role - Updated mapping based on your Azure AD roles
+    if not email or not saml_subject_id:
+        print(f"Missing required data - Email: {email}, SAML Subject ID: {saml_subject_id}")
+        raise ValueError("Email and SAML subject ID are required for SAML user creation")
+    
+    # First try to find user by SAML subject ID (the permanent unique identifier)
+    db_user = get_user_by_saml_subject_id(db, saml_subject_id)
+    
+    # If not found by SAML subject ID, try by email (for migration scenarios)
+    if not db_user:
+        db_user = get_user_by_email(db, email)
+    
+    # Map Azure role to internal role
     azure_role = user_data.get('role', '').lower()
     role_mapping = {
         # Azure AD Role -> Internal Role Name (exact match to database)
+        'itfc-business-admin': 'Super Admin',
         'hr-manager': 'HR Manager',
-        'hiring-manager': 'Hiring Manager',
+        'hiring-manager': 'Hiring Manager', 
         'hr-intern': 'HR Intern',
         'recruiter': 'Recruiter',
-        'super-admin': 'Super Admin',
         'sourcer': 'Sourcer'
     }
     
@@ -207,14 +247,14 @@ def create_or_update_saml_user(db: Session, user_data: dict):
     
     if db_user:
         # Update existing user
-        db_user.full_name = user_data.get('name', db_user.full_name)
+        db_user.email = email  # Update email in case it changed
+        db_user.full_name = user_data.get('displayname', user_data.get('name', db_user.full_name))
         db_user.is_saml_user = True
-        db_user.saml_subject_id = user_data.get('nameid')
-        db_user.saml_session_index = user_data.get('session_index')
+        db_user.saml_subject_id = saml_subject_id
         db_user.azure_role = user_data.get('role')
         if role:
             db_user.role_id = role.id
-        db_user.is_active = True
+        db_user.is_active = True  # IdP login sets this to True
         db.commit()
         db.refresh(db_user)
         
@@ -224,13 +264,12 @@ def create_or_update_saml_user(db: Session, user_data: dict):
         # Create new user
         db_user = User(
             email=email,
-            full_name=user_data.get('name', email.split('@')[0]),
+            full_name=user_data.get('displayname', user_data.get('name', email.split('@')[0])),
             is_saml_user=True,
-            saml_subject_id=user_data.get('nameid'),
-            saml_session_index=user_data.get('session_index'),
+            saml_subject_id=saml_subject_id,
             azure_role=user_data.get('role'),
             role_id=role.id if role else None,
-            is_active=True
+            is_active=True  # IdP login sets this to True
         )
         db.add(db_user)
         db.commit()

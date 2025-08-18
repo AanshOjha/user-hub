@@ -8,7 +8,13 @@ class UserBase(BaseModel):
     full_name: str
 
 class UserCreate(UserBase):
-    password: str
+    password: Optional[str] = None  # Optional for SAML users
+    role_id: Optional[int] = None
+
+class UserCreateSAML(UserBase):
+    """Schema for creating SAML users"""
+    saml_subject_id: str
+    azure_role: Optional[str] = None
     role_id: Optional[int] = None
 
 class UserUpdate(BaseModel):
@@ -16,11 +22,15 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     role_id: Optional[int] = None
     is_active: Optional[bool] = None
+    azure_role: Optional[str] = None
 
 class UserInDB(UserBase):
     id: int
     is_active: bool
     created_at: datetime
+    is_saml_user: bool
+    saml_subject_id: Optional[str] = None
+    azure_role: Optional[str] = None
     role_id: Optional[int] = None
     
     class Config:

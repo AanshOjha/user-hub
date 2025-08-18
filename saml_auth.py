@@ -100,6 +100,15 @@ class SAMLAuth:
         attributes = auth.get_attributes()
         
         # Extract user information from SAML attributes
+        # Try multiple possible claim names for object identifier
+        objectidentifier = (
+            self._get_attribute_value(attributes, 'http://schemas.microsoft.com/identity/claims/objectidentifier') or
+            self._get_attribute_value(attributes, 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier') or
+            self._get_attribute_value(attributes, 'objectidentifier') or
+            self._get_attribute_value(attributes, 'oid') or
+            self._get_attribute_value(attributes, 'http://schemas.microsoft.com/identity/claims/tenantid')
+        )
+        
         user_data = {
             'email': self._get_attribute_value(attributes, 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'),
             'name': self._get_attribute_value(attributes, 'http://schemas.microsoft.com/identity/claims/displayname'),
@@ -108,10 +117,21 @@ class SAMLAuth:
             'role': self._get_attribute_value(attributes, 'http://schemas.microsoft.com/ws/2008/06/identity/claims/role'),
             'groups': attributes.get('http://schemas.microsoft.com/ws/2008/06/identity/claims/groups', []),
             'upn': self._get_attribute_value(attributes, 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/upn'),
+            'objectidentifier': objectidentifier,
             'nameid': auth.get_nameid(),
             'session_index': auth.get_session_index(),
             'all_attributes': attributes
         }
+        
+        # Debug: Print all available attributes to help troubleshoot
+        print("=== SAML Attributes Debug ===")
+        print(f"All available attribute keys: {list(attributes.keys())}")
+        for key, value in attributes.items():
+            print(f"  {key}: {value}")
+        print(f"Object identifier: {user_data.get('objectidentifier')}")
+        print(f"Email: {user_data.get('email')}")
+        print(f"Name ID: {user_data.get('nameid')}")
+        print("==============================")
         
         return user_data
     

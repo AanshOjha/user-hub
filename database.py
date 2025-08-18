@@ -14,22 +14,23 @@ Base = declarative_base()
 class User(Base):
     __tablename__ = "users"
     
+    # Core fields for both SAML and normal users
     id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, unique=True, index=True, nullable=False)
-    hashed_password = Column(String, nullable=True)  # Made nullable for SAML users
-    full_name = Column(String, nullable=False)
-    is_active = Column(Boolean, default=True)
+    email = Column(String, unique=True, index=True, nullable=False)  # Primary human-readable ID
+    full_name = Column(String, nullable=False)  # For personalizing the user interface
+    is_active = Column(Boolean, default=True)  # Control access within the app
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
-    # SAML-related fields (using existing schema)
-    is_saml_user = Column(Boolean, default=False)  # Existing column
-    saml_subject_id = Column(String, nullable=True)  # Existing column
-    saml_session_index = Column(String, nullable=True)  # Additional session data
-    azure_role = Column(String, nullable=True)  # Store the Azure AD role claim
+    # Authentication fields
+    hashed_password = Column(String, nullable=True)  # Only for password-based users
+    is_saml_user = Column(Boolean, default=False)  # Flag to distinguish authentication method
     
-    # Relationship to role
-    role_id = Column(Integer, ForeignKey("roles.id"))
+    # SAML-specific fields
+    saml_subject_id = Column(String, nullable=True, unique=True)  # Critical permanent unique ID from objectidentifier claim
+    azure_role = Column(String, nullable=True)  # Raw Azure role from role/rbac claim
+    
+    # Role mapping
+    role_id = Column(Integer, ForeignKey("roles.id"))  # Internal role mapping
     role = relationship("Role", back_populates="users")
     
     # Relationship to audit logs
