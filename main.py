@@ -199,18 +199,22 @@ async def saml_logout(request: Request, db: Session = Depends(get_db)):
         saml_subject_id = request.cookies.get("saml_subject_id")
         saml_session_index = request.cookies.get("saml_session")
         
-        # Clear local session
-        response = RedirectResponse(url="/login", status_code=302)
-        response.delete_cookie(key="access_token")
-        response.delete_cookie(key="saml_session")
-        response.delete_cookie(key="saml_subject_id")
-        
         # If we have SAML session data, initiate SAML logout
         if saml_subject_id and saml_session_index:
             logout_url = saml_auth.initiate_logout(request, saml_subject_id, saml_session_index)
-            return RedirectResponse(url=logout_url, status_code=302)
-        
-        return response
+            # Create response that redirects to Microsoft logout AND clears cookies
+            response = RedirectResponse(url=logout_url, status_code=302)
+            response.delete_cookie(key="access_token")
+            response.delete_cookie(key="saml_session")
+            response.delete_cookie(key="saml_subject_id")
+            return response
+        else:
+            # No SAML session data, just clear local session and redirect to login
+            response = RedirectResponse(url="/login", status_code=302)
+            response.delete_cookie(key="access_token")
+            response.delete_cookie(key="saml_session")
+            response.delete_cookie(key="saml_subject_id")
+            return response
         
     except Exception as e:
         # Fallback to local logout if SAML logout fails
